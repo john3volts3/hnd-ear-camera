@@ -44,6 +44,7 @@ Les caméras d'oreille / loupes Wi-Fi HND (modèle HND-NE3, réseau Wi-Fi `HNDEC
 | NF-05 | Exécutables sans redistribuable VC++ (CRT statique), x64 | respectée |
 | NF-06 | Page web accessible uniquement depuis le PC (127.0.0.1) | respectée |
 | NF-07 | Pas de gel d'image dû aux recherches Wi-Fi de Windows (mode streaming) | respectée |
+| NF-08 | Pas de ralentissement du PC quand il est relié à la fois au réseau local (Ethernet) et à la caméra (Wi-Fi) | proposée |
 
 ## 7. Contraintes et dépendances
 - Caméra : un seul client à la fois (déconnecter le téléphone) ; coupe son Wi-Fi pendant la charge.
@@ -65,8 +66,9 @@ Les caméras d'oreille / loupes Wi-Fi HND (modèle HND-NE3, réseau Wi-Fi `HNDEC
 - Ouvert : la caméra virtuelle, chargée par un service Windows, a-t-elle le droit de changer de réseau Wi-Fi ?
 - Ouvert : la caméra propose-t-elle un mode « routeur » (`wifi_mode: AP` dans sa fiche) qui éviterait de changer de réseau Wi-Fi ?
 - Ouvert : visualiseur et caméra virtuelle utilisés en même temps sur la même caméra (un seul client accepté).
+- Ouvert : PC fortement ralenti quand l'Ethernet et le Wi-Fi de la caméra sont connectés en même temps (piste : DNS / passerelle annoncés par la caméra) → exigence NF-08 proposée.
 
 ## 10. Historique des livraisons
 | Date | Version / commit | Exigences livrées |
 |---|---|---|
-| 2026-11-12 | 1.0.0 (visualiseur) | EF-01 à EF-09, NF-01 à NF-07 |
+| 2026-11-12 | 1.0.0 (visualiseur), commit `7f7d012` + documentation de livraison | EF-01 à EF-09, NF-01 à NF-07 |

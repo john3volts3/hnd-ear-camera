@@ -44,3 +44,12 @@
 - Étape 4, fermeture de l'onglet → arrêt et libération du Wi-Fi : OK.
 - Étape 5, caméra allumée puis app lancée : OK.
 - **Caméra virtuelle (DLL + installateur) : compilée, pas encore installée ni testée.**
+
+### Livraison
+- 20:40 : commit `7f7d012` (code + documentation), puis livraison 1.0.0 du visualiseur : PRD (historique), JOURNAL, push GitHub, sauvegarde de l'environnement Claude.
+- Paquet à partager : `dist/HND-Ear-Camera-Viewer-1.0.0.zip` (non suivi par git, à recréer avec `build.cmd` puis copie de `HndViewer.exe` + `READ-ME_viewer.txt`).
+
+### À faire à la session suivante
+1. **PC très ralenti avec l'Ethernet et le Wi-Fi caméra connectés en même temps** (constat de l'utilisateur, redémarrage nécessaire). Pistes : la caméra annonce par DHCP une passerelle et un serveur DNS (port UDP 53 ouvert sur la caméra) sans accès internet ; Windows envoie les requêtes DNS sur toutes les interfaces et peut attendre le DNS de la caméra. Vérifier `Get-DnsClientServerAddress`, les routes et métriques ; envisager de retirer la passerelle / le DNS de l'interface Wi-Fi pendant l'utilisation, ou de passer en adresse fixe sans passerelle.
+2. Tester la caméra virtuelle (installation avec UAC, app Caméra, Teams, redémarrage, désinstallation), selon le même protocole pas à pas.
+3. Nettoyage : deux profils Wi-Fi manuels de test `HNDEC_…` créés pendant le diagnostic (inutiles, les applications utilisent un profil temporaire) — à supprimer avec l'accord de l'utilisateur.
