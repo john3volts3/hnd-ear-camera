@@ -1,0 +1,63 @@
+# FSD — HND Ear Camera pour Windows
+
+## 1. Vue d'ensemble
+| Composant | Fichier | Rôle |
+|---|---|---|
+| Cœur caméra | `src/core` (bibliothèque statique `hndcore`) | Protocole, réassemblage JPEG, orientation, Wi-Fi, images, journal |
+| Visualiseur autonome | `src/viewer` → `HndViewer.exe` | Mini serveur HTTP local + page web, sans installation |
+| Visualiseur Python | `tools/viewer/hnd_viewer.py` | Même fonction, bibliothèque standard Python (outil de test) |
+| Page web | `tools/viewer/viewer.html` | Commune aux deux visualiseurs (embarquée dans l'exe) |
+| Caméra virtuelle | `src/source` → `HndCamSource.dll` | Source Media Foundation chargée par le service Frame Server |
+| Installateur | `src/setup` → `HndCamSetup.exe` | Installe / désinstalle / restaure la caméra virtuelle |
+| Outil de test | `tools/probe` → `HndCamProbe.exe` | Console : état, images/s, captures PNG |
+
+## 2. Protocole de la caméra HND-NE3 (rétro-ingénierie)
+- Point d'accès Wi-Fi ouvert `HNDEC_xx-xxxxxx`, caméra en 192.168.1.1, DHCP. Un seul client à la fois. Aucun port TCP.
+- **Découverte** : `66 39 01 01` vers le port UDP **46526** (diffusion du sous-réseau). Réponse JSON : `uuid`, `model` (`EAR_CAMERA`), `brand` (`HND-NE3`), `soc` (`BK7231UQFN40`), `firmware`, `bat_capacity`, `macid`, `wifi_mode` (`AP`)…
+- **Accéléromètre** : `86 06 01` vers le port **52219** ; la caméra renvoie des paquets de 24 octets (≈ 12 Hz). Octets 0-1, 2-3, 4-5 : axes X, Y, Z sur 12 bits signés (octet fort puis quartet faible) ; octets 18-19 : angle calculé par la caméra (int16 big-endian, = -90 - roulis). X est l'axe de visée.
+- **Vidéo** : `20 36` vers le port **44506** ; arrêt : `20 37`. Chaque paquet : `[0]` numéro d'image (8 bits), `[1]` drapeaux (bit 0 = dernier morceau), `[2]` numéro de morceau (à partir de 1), `[3]` inconnu, puis les données. Le dernier morceau se termine par 5 octets à retirer. Les morceaux mis bout à bout forment un JPEG complet 480×480.
+- Aucun maintien nécessaire (flux stable plus de 150 s après une seule commande).
+
+## 3. Algorithmes
+### 3.1 Recherche et connexion
+1. Lister les interfaces Wi-Fi actives (`GetAdaptersAddresses`, type IEEE 802.11) et leur adresse de diffusion.
+2. Socket UDP **lié à l'adresse Wi-Fi** (rien ne sort par l'Ethernet), envoi de la découverte, attente 1,2 s.
+3. Réponse acceptée si `brand` contient « HND » ou `model` contient « EAR_CAMERA ».
+4. Sinon, au plus toutes les 6 s : recherche Wi-Fi (`WlanScan`), choix du réseau **ouvert** nommé `HNDEC_…` au meilleur signal, différent du réseau actuel, connexion avec un **profil temporaire** (`WlanConnect`, `wlan_connection_mode_temporary_profile`) : rien n'est enregistré dans Windows.
+5. À l'arrêt : déconnexion du réseau de la caméra seulement si le programme l'a rejoint lui-même ; Windows reprend le réseau habituel.
+
+### 3.2 Flux vidéo
+- Démarrage : commandes accéléromètre + vidéo, **mode streaming Wi-Fi** activé (`wlan_intf_opcode_media_streaming_mode`) pour supprimer les recherches Wi-Fi d'arrière-plan qui gelaient l'image toutes les 5 s.
+- Réassemblage dans 4 emplacements par numéro d'image ; morceaux de plus de 1 s abandonnés.
+- Pas d'image depuis 2,5 s : nouvelle commande de démarrage (la dernière image reste affichée). Depuis 7 s : reconnexion complète (retour à 3.1).
+
+### 3.3 Orientation
+- roulis = atan2(ay, -az) ; rotation d'affichage (sens horaire) = -90° - roulis (= angle fourni par la caméra), plus le décalage manuel.
+- Si la composante de gravité dans le plan de roulis est inférieure à 45 % de g (caméra pointée vers le haut ou le bas), l'orientation précédente est conservée.
+- Filtre passe-bas (facteur 0,25) sur le plus court chemin angulaire.
+
+### 3.4 Visualiseurs (navigateur)
+- Serveur HTTP sur 127.0.0.1, port 8765 (ou suivant libre jusqu'à 8774 pour l'exe). Routes : `/` page, `/status.json` (état, caméra, images/s, angle), `/stream.mjpg` (flux `multipart/x-mixed-replace`), `/snapshot.jpg` (image brute).
+- La page applique la rotation en CSS (cadre rond), propose l'orientation manuelle (mémorisée dans le navigateur) et la photo (canvas, telle qu'affichée).
+- Le navigateur ferme un flux MJPEG resté plus de ≈ 7 s sans données : la page rouvre le flux quand l'état repasse à « Streaming », et après une erreur de chargement.
+- Arrêt automatique : aucune connexion vidéo et aucune interrogation d'état depuis 5 s (après la première visite). L'exe s'arrête aussi si la page n'a jamais été ouverte au bout de 2 min. Un seul exe à la fois (mutex).
+- Journal : `%TEMP%\HndViewer.log`.
+
+### 3.5 Caméra virtuelle (à tester)
+- `HndCamSource.dll` : objet COM `{43B7D877-ACE8-4D4D-9A8D-FA946B7B77AA}` (Activator → MediaSource → MediaStream), un flux vidéo 640×480, NV12 (préféré) et RGB32, 30 i/s annoncées (images répétées), échantillons en mémoire système (gestionnaire D3D ignoré).
+- L'image de la caméra est tournée et inscrite dans un disque de 480 px ; sans caméra, un écran d'état explique quoi faire.
+- Réglages lus dans `HKLM\Software\HND Ear Camera` : `AutoRotate` (DWORD, 1), `RotationOffset` (DWORD signé, degrés).
+- Journal : `%ProgramData%\HND Ear Camera\logs\source.log` (dossier accessible en écriture au compte Local Service).
+- `HndCamSetup.exe` (droits administrateur) : vérifie Windows 11, copie la DLL et lui-même dans `%ProgramFiles%\HND Ear Camera`, enregistre le CLSID (HKLM), crée la caméra (`MFCreateVirtualCamera`, durée System, tous les utilisateurs), crée la tâche planifiée « HND Ear Camera - restore » (au démarrage, compte SYSTEM, `/restore`) car la caméra virtuelle ne survit pas au redémarrage, et ajoute l'entrée de désinstallation. Options : `/install`, `/uninstall`, `/restore`, `/quiet`.
+
+## 4. Entrées / sorties
+- Entrées : réseau Wi-Fi de la caméra (UDP 46526, 52219, 44506), clics dans la page.
+- Sorties : page web locale, photos JPEG téléchargées, caméra virtuelle Windows, journaux.
+
+## 5. Limitations
+- Une caméra et un client à la fois ; visualiseur et caméra virtuelle ne doivent pas être utilisés en même temps.
+- Pendant l'utilisation, le Wi-Fi du PC est sur le réseau de la caméra : pas d'internet sans Ethernet.
+- La caméra coupe son Wi-Fi pendant la charge.
+- Résolution 480×480, ≈ 12-14 images/s (limite de la caméra).
+- Caméra virtuelle : Windows 11 uniquement ; non testée à ce jour.
+- Programmes non signés (avertissement SmartScreen).

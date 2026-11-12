@@ -1,0 +1,37 @@
+HND Ear Camera - Viewer
+=======================
+
+ENGLISH
+
+Shows the picture of an HND Wi-Fi ear camera (Wi-Fi network named "HNDEC_...") in your web browser.
+Nothing to install, no administrator rights. Windows 10 or 11.
+
+1. Turn the camera on (blue light). Close the camera app on your phone.
+2. Double-click HndViewer.exe.
+   The first time, Windows may show "Windows protected your PC":
+   click "More info", then "Run anyway" (the program is not digitally signed).
+3. Your web browser opens. The PC connects to the camera Wi-Fi by itself,
+   and the picture appears after a few seconds.
+4. Buttons: automatic rotation, orientation (90 / 5 degree steps), save photo.
+5. Close the browser tab: the viewer stops and the PC returns to its usual Wi-Fi network.
+
+While the camera is in use, a PC that only has Wi-Fi (no network cable) has no internet access.
+One camera at a time, and one viewer at a time (the camera accepts a single client).
+
+
+FRANCAIS
+
+Affiche l'image d'une camera d'oreille Wi-Fi HND (reseau Wi-Fi nomme "HNDEC_...") dans votre navigateur.
+Rien a installer, pas besoin de droits administrateur. Windows 10 ou 11.
+
+1. Allumez la camera (voyant bleu). Fermez l'application de la camera sur le telephone.
+2. Double-cliquez sur HndViewer.exe.
+   La premiere fois, Windows peut afficher "Windows a protege votre PC" :
+   cliquez sur "Informations complementaires", puis "Executer quand meme" (le programme n'est pas signe).
+3. Le navigateur s'ouvre. Le PC se connecte tout seul au Wi-Fi de la camera,
+   et l'image apparait apres quelques secondes.
+4. Boutons : rotation automatique, orientation (pas de 90 / 5 degres), enregistrer une photo.
+5. Fermez l'onglet du navigateur : le visualiseur s'arrete et le PC retrouve son Wi-Fi habituel.
+
+Pendant l'utilisation de la camera, un PC qui n'a que le Wi-Fi (pas de cable reseau) n'a pas internet.
+Une camera a la fois, et un seul visualiseur a la fois (la camera n'accepte qu'un client).

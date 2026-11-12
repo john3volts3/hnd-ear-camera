@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>HND Ear Camera</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { margin: 0; background: #16181d; color: #e8e8e8; font: 15px Segoe UI, sans-serif;
+         display: flex; flex-direction: column; align-items: center; }
+  h1 { font-weight: 600; font-size: 20px; margin: 18px 0 6px; }
+  #status { color: #9aa4b2; margin-bottom: 14px; min-height: 20px; text-align: center; padding: 0 16px; }
+  #view { width: min(480px, 92vw); aspect-ratio: 1; border-radius: 50%; overflow: hidden;
+          background: #000; box-shadow: 0 0 0 3px #2d6fd6; }
+  #view.square { border-radius: 6px; }
+  #img { width: 100%; height: 100%; display: block; transition: transform .12s linear; }
+  .bar { margin: 12px 0 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; padding: 0 16px; }
+  .bar button { background: #2a2f38; color: #e8e8e8; border: 1px solid #3a414d; border-radius: 6px;
+                padding: 7px 12px; font: inherit; cursor: pointer; }
+  .bar button:hover { background: #343b46; }
+  .bar button.primary { background: #2d6fd6; border-color: #2d6fd6; color: #fff; padding: 8px 18px; }
+  #offset { min-width: 52px; text-align: center; color: #9aa4b2; }
+  .hint { color: #7d8794; font-size: 13px; max-width: 520px; text-align: center; padding: 0 16px; margin-top: 18px; }
+</style></head><body>
+<h1>HND Ear Camera</h1>
+<div id="status">Connecting...</div>
+<div id="view"><img id="img" src="/stream.mjpg" alt="camera"></div>
+<div class="bar">
+  <label><input type="checkbox" id="rotate" checked> Auto-rotate</label>
+</div>
+<div class="bar">
+  <span>Orientation:</span>
+  <button id="ccw90" title="Rotate 90 degrees counterclockwise">&#10226; 90&deg;</button>
+  <button id="ccw5" title="Rotate 5 degrees counterclockwise">&minus;5&deg;</button>
+  <span id="offset">0&deg;</span>
+  <button id="cw5" title="Rotate 5 degrees clockwise">+5&deg;</button>
+  <button id="cw90" title="Rotate 90 degrees clockwise">90&deg; &#10227;</button>
+  <button id="reset" title="Reset the orientation">Reset</button>
+</div>
+<div class="bar"><button class="primary" id="photo">Save photo</button></div>
+<p class="hint">Connect this PC's Wi-Fi to the camera network (HNDEC_...) and disconnect the phone app.
+To stop, close this page and press Ctrl+C in the console window.</p>
+<script>
+  const img = document.getElementById('img'), view = document.getElementById('view');
+  const rotate = document.getElementById('rotate'), status = document.getElementById('status');
+  const offsetLabel = document.getElementById('offset');
+  let shown = 0;   // unwrapped displayed angle, avoids spinning when crossing 0/360
+  let offset = 0;  // manual orientation, degrees clockwise
+  let autoAngle = null;
+  let lastState = '';
+
+  // the browser does not resume a video stream that stalled: open a new one when the video comes back
+  function restartStream() { img.src = '/stream.mjpg?t=' + Date.now(); }
+  img.addEventListener('error', () => setTimeout(restartStream, 1000));
+
+  function load(key, fallback) { try { const v = localStorage.getItem(key); return v === null ? fallback : v; } catch (e) { return fallback; } }
+  function save(key, value) { try { localStorage.setItem(key, value); } catch (e) { } }
+  function setOffset(v) {
+    offset = ((Math.round(v) % 360) + 540) % 360 - 180;
+    offsetLabel.textContent = (offset > 0 ? '+' : '') + offset + '\u00b0';
+    save('hnd.offset', offset);
+    render();
+  }
+  function circular() { return rotate.checked || offset % 90 !== 0; }
+  function render() {
+    const target = (rotate.checked && autoAngle !== null ? autoAngle : 0) + offset;
+    shown += ((target - shown) % 360 + 540) % 360 - 180;
+    img.style.transform = 'rotate(' + shown + 'deg)';
+    view.classList.toggle('square', !circular());
+  }
+
+  rotate.checked = load('hnd.auto', '1') !== '0';
+  rotate.addEventListener('change', () => { save('hnd.auto', rotate.checked ? '1' : '0'); render(); });
+  setOffset(parseInt(load('hnd.offset', '0'), 10) || 0);
+  document.getElementById('ccw90').onclick = () => setOffset(offset - 90);
+  document.getElementById('ccw5').onclick = () => setOffset(offset - 5);
+  document.getElementById('cw5').onclick = () => setOffset(offset + 5);
+  document.getElementById('cw90').onclick = () => setOffset(offset + 90);
+  document.getElementById('reset').onclick = () => setOffset(0);
+
+  // saves the picture as displayed (rotation and round frame included)
+  document.getElementById('photo').onclick = () => {
+    try {
+      const size = img.naturalWidth || 480;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, size, size);
+      if (circular()) { ctx.beginPath(); ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI); ctx.clip(); }
+      ctx.translate(size / 2, size / 2);
+      ctx.rotate(shown * Math.PI / 180);
+      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      canvas.toBlob(blob => {
+        const a = document.createElement('a');
+        const t = new Date(), p = n => String(n).padStart(2, '0');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'hnd_' + t.getFullYear() + p(t.getMonth() + 1) + p(t.getDate()) + '_' + p(t.getHours()) + p(t.getMinutes()) + p(t.getSeconds()) + '.jpg';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      }, 'image/jpeg', 0.95);
+    } catch (e) {
+      window.location = '/snapshot.jpg'; // raw camera picture as a fallback
+    }
+  };
+
+  async function poll() {
+    try {
+      const s = await (await fetch('/status.json', {cache: 'no-store'})).json();
+      status.textContent = s.state + (s.camera ? ' - ' + s.camera : '') + (s.state === 'Streaming' ? ' - ' + s.fps + ' fps' : '');
+      autoAngle = s.angle;
+      if (s.state === 'Streaming' && lastState !== '' && lastState !== 'Streaming')
+        restartStream();
+      lastState = s.state;
+      render();
+    } catch (e) { status.textContent = 'Viewer stopped'; }
+    setTimeout(poll, 150);
+  }
+  poll();
+</script></body></html>
