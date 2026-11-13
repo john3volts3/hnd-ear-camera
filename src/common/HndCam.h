@@ -3,10 +3,17 @@
 // Product-wide constants shared by the media source DLL, the setup and the tools.
 
 #define HNDCAM_VERSION_MAJOR 1
-#define HNDCAM_VERSION_MINOR 1
+#define HNDCAM_VERSION_MINOR 2
 #define HNDCAM_VERSION_PATCH 0
-#define HNDCAM_VERSION_STR "1.1.0"
-#define HNDCAM_VERSION_WSTR L"1.1.0"
+#define HNDCAM_VERSION_STR "1.2.0"
+#define HNDCAM_VERSION_WSTR L"1.2.0"
+
+// Browser viewer: name shown to the user, installed in <system drive>\CAM-OREILLE
+#define HNDCAM_VIEWER_NAME L"CAM-Oreille"
+#define HNDCAM_VIEWER_EXE_NAME L"CAM-Oreille.exe"
+#define HNDCAM_VIEWER_DIR_NAME L"CAM-OREILLE"
+#define HNDCAM_VIEWER_UNINSTALL_KEY L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\CAM-Oreille"
+#define HNDCAM_VIEWER_MUTEX L"Local\\HndEarCameraViewer"
 
 #define HNDCAM_PRODUCT_NAME L"HND Ear Camera"
 #define HNDCAM_PUBLISHER L"hnd-ear-camera project"

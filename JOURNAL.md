@@ -99,3 +99,41 @@
 2. Piste future : réglage réseau temporaire (PRD EF-17), seulement si un ralentissement est mesuré.
 3. Projet futur : application Android (PRD EF-22), nouveau skill d'environnement à créer.
 4. Toujours en attente : test de la caméra virtuelle ; suppression des deux profils Wi-Fi de test `HNDEC_…` (avec l'accord de l'utilisateur).
+
+### Version 1.2.0 « CAM-Oreille » (même session)
+
+#### Fichiers créés
+| Heure | Fichier | Description |
+|---|---|---|
+| 05:50 | `src/viewer/CAM-Oreille.ico` | Icône (anneau bleu de la page autour d'un objectif), 16 à 256 px, générée par un script PowerShell (System.Drawing) |
+| 05:51 | `src/viewer/Lang.h` | `UiFrench()` (affichage ou formats régionaux de Windows en français) et `Tr(anglais, français)` |
+| 05:52 | `src/viewer/Installer.h`, `src/viewer/Installer.cpp` | Installation dans `%SystemDrive%\CAM-OREILLE` sans droits administrateur, mise à jour (comparaison des versions), raccourci bureau, entrée Paramètres > Applications (HKCU), désinstallation `/uninstall` |
+
+#### Fichiers modifiés
+| Heure | Fichier | Description |
+|---|---|---|
+| 05:51 | `src/common/HndCam.h` | Version 1.2.0 ; nom, exe, dossier, clé de désinstallation et mutex du visualiseur |
+| 05:53 | `src/viewer/main.cpp` | Nom CAM-Oreille, textes traduits, champs `text`, `lang`, `version` dans `/status.json`, journal `%TEMP%\CAM-Oreille.log`, `/uninstall`, installation proposée au lancement ; 06:14 : version dans le titre des fenêtres |
+| 05:54 | `src/viewer/HndViewer.rc`, `CMakeLists.txt` | Icône, VERSIONINFO « CAM-Oreille », exe `CAM-Oreille.exe` (`OUTPUT_NAME`), `Installer.cpp`, bibliothèque `version` ; version 1.2.0 |
+| 05:55 | `tools/viewer/viewer.html` | Titre CAM-Oreille, dictionnaire français, état traduit, consigne corrigée (plus de Ctrl+C), « i/s » ; 06:14 : version sous le titre |
+| 05:57 | `tools/viewer/READ-ME_viewer.txt` | Notice bilingue réécrite : installation, utilisation, mise à jour, désinstallation |
+| 05:59 | `src/viewer/WifiAdapters.cpp` | Correction : après l'activation d'une carte dont le Wi-Fi était coupé, surveillance de la radio 8 s avant de décider de la rallumer (le pilote annonce d'abord la radio allumée) |
+| 06:14 | `src/viewer/Installer.cpp` | Version dans le titre des fenêtres ; journal de la fenêtre proposée (installation / mise à jour depuis quelle version) et de la réponse |
+| 06:20 | `README.md`, `README.fr.md`, `FSD.md`, `PRD.md` | CAM-Oreille, installation, partage avec des amis, §3.4 ter / quater du FSD, EF-18 à EF-23 |
+
+#### Tests utilisateur (zip marqué « reçu par WhatsApp » dans Téléchargements)
+- Test A, première installation depuis le zip : avertissement SmartScreen, fenêtres en français, dossier + icône + entrée Applications : OK. Défaut trouvé : carte désactivée alors que son Wi-Fi était coupé → Wi-Fi resté coupé (corrigé à 05:59).
+- Désinstallation par Paramètres > Applications : icône, entrée et dossier supprimés : OK.
+- Test D, réinstallation de la version corrigée : Wi-Fi rallumé tout seul, image, tout en français : OK.
+- Test E, lancement depuis l'icône du bureau : aucun avertissement, pas de fenêtre d'installation : OK.
+- Test F, mise à jour depuis une fausse 1.1.9 : fenêtre de mise à jour avec les deux versions (confirmé par le journal), version 1.2.0 installée et affichée dans la page : OK.
+- Diagnostic annexe : les `.zip` ne s'ouvraient pas au double-clic sur le PC de l'utilisateur, car ils étaient associés à `7z.exe` (7-Zip en ligne de commande) ; réglable par « Ouvrir avec » (Explorateur Windows ou `7zFM.exe`).
+
+#### Livraison
+- 1.2.0 : documentation, commit, push, paquet `dist/CAM-Oreille-1.2.0.zip` (non suivi par git).
+
+#### À faire
+1. Publication pour les amis : lien Google Drive (par l'utilisateur) ; page « Releases » GitHub après vérification de l'historique et accord explicite pour rendre le dépôt public.
+2. Piste future : réglage réseau temporaire (PRD EF-17), seulement si un ralentissement est mesuré.
+3. Projet futur : application Android (PRD EF-22), nouveau skill d'environnement à créer.
+4. Toujours en attente : test de la caméra virtuelle ; suppression des deux profils Wi-Fi de test `HNDEC_…` (avec l'accord de l'utilisateur).

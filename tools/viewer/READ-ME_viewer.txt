@@ -1,45 +1,62 @@
-HND Ear Camera - Viewer
-=======================
+CAM-Oreille
+===========
 
 ENGLISH
 
 Shows the picture of an HND Wi-Fi ear camera (Wi-Fi network named "HNDEC_...") in your web browser.
-Nothing to install. Windows 10 or 11.
-Administrator rights only to turn a Wi-Fi adapter on when Wi-Fi is off.
+Windows 10 or 11.
 
+Install
+1. Double-click CAM-Oreille.exe (it can be opened directly from the .zip file).
+   Windows may show "Windows protected your PC": click "More info", then "Run anyway"
+   (the program is not digitally signed).
+2. Click "Install and start": CAM-Oreille is copied to C:\CAM-OREILLE and a CAM-Oreille icon
+   is added to the desktop. No administrator rights needed. ("Start without installing" runs it once.)
+
+Use
 1. Turn the camera on (blue light). Close the camera app on your phone.
-2. Double-click HndViewer.exe.
-   The first time, Windows may show "Windows protected your PC":
-   click "More info", then "Run anyway" (the program is not digitally signed).
+2. Double-click the CAM-Oreille icon on the desktop.
    If Wi-Fi is turned off on the PC, a window lists the Wi-Fi adapters:
    pick one and click "Turn on Wi-Fi", then allow it (administrator rights).
-   The adapter is turned off again when the viewer closes (box ticked by default).
+   The adapter is turned off again when CAM-Oreille closes (box ticked by default).
 3. Your web browser opens. The PC connects to the camera Wi-Fi by itself,
    and the picture appears after a few seconds.
 4. Buttons: automatic rotation, orientation (90 / 5 degree steps), save photo.
-5. Close the browser tab: the viewer stops and the PC returns to its usual Wi-Fi network.
+5. Close the browser tab: CAM-Oreille stops and the PC returns to its usual Wi-Fi network.
 
 While the camera is in use, a PC that only has Wi-Fi (no network cable) has no internet access.
-One camera at a time, and one viewer at a time (the camera accepts a single client).
+One camera at a time, and one CAM-Oreille at a time (the camera accepts a single client).
+
+Update: double-click the new CAM-Oreille.exe, then click "Update and start".
+Remove: Settings > Apps > Installed apps > CAM-Oreille > Uninstall.
 
 
-FRANCAIS
+FRANÇAIS
 
-Affiche l'image d'une camera d'oreille Wi-Fi HND (reseau Wi-Fi nomme "HNDEC_...") dans votre navigateur.
-Rien a installer. Windows 10 ou 11.
-Droits administrateur seulement pour allumer une carte Wi-Fi quand le Wi-Fi est eteint.
+Affiche l'image d'une caméra d'oreille Wi-Fi HND (réseau Wi-Fi nommé « HNDEC_... ») dans votre navigateur.
+Windows 10 ou 11. L'application s'affiche en français si Windows est en français.
 
-1. Allumez la camera (voyant bleu). Fermez l'application de la camera sur le telephone.
-2. Double-cliquez sur HndViewer.exe.
-   La premiere fois, Windows peut afficher "Windows a protege votre PC" :
-   cliquez sur "Informations complementaires", puis "Executer quand meme" (le programme n'est pas signe).
-   Si le Wi-Fi du PC est eteint, une fenetre liste les cartes Wi-Fi :
-   choisissez-en une et cliquez sur "Turn on Wi-Fi", puis autorisez (droits administrateur).
-   La carte est eteinte de nouveau a la fermeture du visualiseur (case cochee par defaut).
-3. Le navigateur s'ouvre. Le PC se connecte tout seul au Wi-Fi de la camera,
-   et l'image apparait apres quelques secondes.
-4. Boutons : rotation automatique, orientation (pas de 90 / 5 degres), enregistrer une photo.
-5. Fermez l'onglet du navigateur : le visualiseur s'arrete et le PC retrouve son Wi-Fi habituel.
+Installation
+1. Double-cliquez sur CAM-Oreille.exe (il peut être ouvert directement depuis le fichier .zip).
+   Windows peut afficher « Windows a protégé votre PC » : cliquez sur « Informations complémentaires »,
+   puis « Exécuter quand même » (le programme n'est pas signé).
+2. Cliquez sur « Installer et démarrer » : CAM-Oreille est copié dans C:\CAM-OREILLE et une icône
+   CAM-Oreille est ajoutée sur le bureau. Aucun droit administrateur n'est nécessaire.
+   (« Démarrer sans installer » le lance une seule fois.)
 
-Pendant l'utilisation de la camera, un PC qui n'a que le Wi-Fi (pas de cable reseau) n'a pas internet.
-Une camera a la fois, et un seul visualiseur a la fois (la camera n'accepte qu'un client).
+Utilisation
+1. Allumez la caméra (voyant bleu). Fermez l'application de la caméra sur le téléphone.
+2. Double-cliquez sur l'icône CAM-Oreille du bureau.
+   Si le Wi-Fi du PC est éteint, une fenêtre liste les cartes Wi-Fi :
+   choisissez-en une et cliquez sur « Allumer le Wi-Fi », puis autorisez (droits administrateur).
+   La carte est éteinte de nouveau à la fermeture de CAM-Oreille (case cochée par défaut).
+3. Le navigateur s'ouvre. Le PC se connecte tout seul au Wi-Fi de la caméra,
+   et l'image apparaît après quelques secondes.
+4. Boutons : rotation automatique, orientation (pas de 90 / 5 degrés), enregistrer la photo.
+5. Fermez l'onglet du navigateur : CAM-Oreille s'arrête et le PC retrouve son Wi-Fi habituel.
+
+Pendant l'utilisation de la caméra, un PC qui n'a que le Wi-Fi (pas de câble réseau) n'a pas internet.
+Une caméra à la fois, et un seul CAM-Oreille à la fois (la caméra n'accepte qu'un client).
+
+Mise à jour : double-cliquez sur le nouveau CAM-Oreille.exe, puis sur « Mettre à jour et démarrer ».
+Désinstallation : Paramètres > Applications > Applications installées > CAM-Oreille > Désinstaller.

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>HND Ear Camera</title>
+<html lang="en"><head><meta charset="utf-8"><title>CAM-Oreille</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   body { margin: 0; background: #16181d; color: #e8e8e8; font: 15px Segoe UI, sans-serif;
@@ -17,19 +17,21 @@
   .bar button.primary { background: #2d6fd6; border-color: #2d6fd6; color: #fff; padding: 8px 18px; }
   #offset { min-width: 52px; text-align: center; color: #9aa4b2; }
   .hint { color: #7d8794; font-size: 13px; max-width: 520px; text-align: center; padding: 0 16px; margin-top: 18px; }
+  .version { color: #7d8794; font-size: 12px; margin: -2px 0 8px; min-height: 14px; }
   .notice { background: #4a3b12; color: #ffe8a6; border: 1px solid #8a6d1d; border-radius: 6px;
             max-width: 480px; margin: 0 16px 14px; padding: 10px 14px; text-align: center; }
 </style></head><body>
-<h1>HND Ear Camera</h1>
+<h1>CAM-Oreille</h1>
+<div id="version" class="version"></div>
 <div id="status">Connecting...</div>
 <div id="wifiOff" class="notice" hidden>Wi-Fi is turned off on this PC, and the camera only works over Wi-Fi.
-Turn Wi-Fi on with the Wi-Fi button in the taskbar, or close this page and start the viewer again to choose a Wi-Fi adapter to turn on.</div>
+Turn Wi-Fi on with the Wi-Fi button in the taskbar, or close this page and start CAM-Oreille again to choose a Wi-Fi adapter to turn on.</div>
 <div id="view"><img id="img" src="/stream.mjpg" alt="camera"></div>
 <div class="bar">
-  <label><input type="checkbox" id="rotate" checked> Auto-rotate</label>
+  <label><input type="checkbox" id="rotate" checked> <span id="tRotate">Auto-rotate</span></label>
 </div>
 <div class="bar">
-  <span>Orientation:</span>
+  <span id="tOrientation">Orientation:</span>
   <button id="ccw90" title="Rotate 90 degrees counterclockwise">&#10226; 90&deg;</button>
   <button id="ccw5" title="Rotate 5 degrees counterclockwise">&minus;5&deg;</button>
   <span id="offset">0&deg;</span>
@@ -38,16 +40,42 @@ Turn Wi-Fi on with the Wi-Fi button in the taskbar, or close this page and start
   <button id="reset" title="Reset the orientation">Reset</button>
 </div>
 <div class="bar"><button class="primary" id="photo">Save photo</button></div>
-<p class="hint">Connect this PC's Wi-Fi to the camera network (HNDEC_...) and disconnect the phone app.
-To stop, close this page and press Ctrl+C in the console window.</p>
+<p class="hint" id="tHint">Disconnect the phone app first: the camera accepts one client at a time.
+To stop, close this page.</p>
 <script>
   const img = document.getElementById('img'), view = document.getElementById('view');
   const rotate = document.getElementById('rotate'), status = document.getElementById('status');
   const offsetLabel = document.getElementById('offset'), wifiOff = document.getElementById('wifiOff');
+  const versionLabel = document.getElementById('version');
   let shown = 0;   // unwrapped displayed angle, avoids spinning when crossing 0/360
   let offset = 0;  // manual orientation, degrees clockwise
   let autoAngle = null;
   let lastState = '';
+
+  // French texts, used when the program says Windows is in French ("lang" in /status.json)
+  const FR = {
+    tRotate: ['Rotation automatique'],
+    tOrientation: ['Orientation :'],
+    ccw90: [null, 'Tourner de 90 degrés vers la gauche'],
+    ccw5: [null, 'Tourner de 5 degrés vers la gauche'],
+    cw5: [null, 'Tourner de 5 degrés vers la droite'],
+    cw90: [null, 'Tourner de 90 degrés vers la droite'],
+    reset: ['Réinitialiser', 'Remettre l’orientation à zéro'],
+    photo: ['Enregistrer la photo'],
+    tHint: ['Déconnectez d’abord l’application du téléphone : la caméra n’accepte qu’un client à la fois. Pour arrêter, fermez cette page.'],
+    wifiOff: ['Le Wi-Fi de ce PC est éteint, et la caméra ne fonctionne qu’en Wi-Fi. Rallumez-le avec le bouton Wi-Fi de la barre des tâches, ou fermez cette page et relancez CAM-Oreille pour choisir une carte Wi-Fi à allumer.'],
+  };
+  let lang = 'en';
+  function applyLang(l) {
+    if (l !== 'fr' || lang === 'fr') return;
+    lang = 'fr';
+    document.documentElement.lang = 'fr';
+    for (const [id, [text, title]] of Object.entries(FR)) {
+      const e = document.getElementById(id);
+      if (text) e.textContent = text;
+      if (title) e.title = title;
+    }
+  }
 
   // the browser does not resume a video stream that stalled: open a new one when the video comes back
   function restartStream() { img.src = '/stream.mjpg?t=' + Date.now(); }
@@ -107,14 +135,20 @@ To stop, close this page and press Ctrl+C in the console window.</p>
   async function poll() {
     try {
       const s = await (await fetch('/status.json', {cache: 'no-store'})).json();
-      status.textContent = s.state + (s.camera ? ' - ' + s.camera : '') + (s.state === 'Streaming' ? ' - ' + s.fps + ' fps' : '');
+      applyLang(s.lang); // not sent by the Python viewer: English
+      if (s.version && !versionLabel.textContent) {
+        versionLabel.textContent = 'Version ' + s.version;
+        document.title = 'CAM-Oreille ' + s.version;
+      }
+      status.textContent = (s.text || s.state) + (s.camera ? ' - ' + s.camera : '')
+        + (s.state === 'Streaming' ? ' - ' + s.fps + (lang === 'fr' ? ' i/s' : ' fps') : '');
       wifiOff.hidden = !s.wifiOff; // not sent by the Python viewer
       autoAngle = s.angle;
       if (s.state === 'Streaming' && lastState !== '' && lastState !== 'Streaming')
         restartStream();
       lastState = s.state;
       render();
-    } catch (e) { status.textContent = 'Viewer stopped'; }
+    } catch (e) { status.textContent = lang === 'fr' ? 'CAM-Oreille est arrêté' : 'CAM-Oreille stopped'; }
     setTimeout(poll, 150);
   }
   poll();

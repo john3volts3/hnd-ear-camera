@@ -1,6 +1,7 @@
-// HndViewer: standalone browser viewer for the HND Ear Camera (no installation, no admin rights, no Python).
+// CAM-Oreille (HndViewer target): standalone browser viewer for the HND Ear Camera (no admin rights, no Python).
 // Double-click it: the default browser opens http://127.0.0.1:<port>/ with the live picture.
 // Closing the browser page stops the program. Same web page as tools/viewer/hnd_viewer.py.
+// First launch of a downloaded copy: offers to install it in <system drive>\CAM-OREILLE (Installer.cpp).
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
@@ -13,9 +14,13 @@
 #include <vector>
 #include "CameraClient.h"
 #include "HndCam.h"
+#include "Installer.h"
+#include "Lang.h"
 #include "Log.h"
 #include "WifiAdapters.h"
 #include "resource.h"
+
+using hndcam::Tr;
 
 namespace
 {
@@ -23,7 +28,7 @@ namespace
     constexpr int PortAttempts = 10;
     constexpr ULONGLONG PageClosedGraceMs = 5000;  // a page reload reconnects well before
     constexpr ULONGLONG NoPageTimeoutMs = 120000;  // the browser never opened the page: give up
-    constexpr wchar_t AppTitle[] = L"HND Ear Camera viewer";
+    constexpr wchar_t AppTitle[] = HNDCAM_VIEWER_NAME L" " HNDCAM_VERSION_WSTR;
 
     hndcam::CameraClient* g_camera = nullptr;
     std::string g_page;
@@ -158,15 +163,17 @@ namespace
         const double currentFps = st.state == hndcam::CameraState::Streaming ? fps : 0.0;
         ReleaseSRWLockExclusive(&lock);
 
+        // "state" is the key read by the page (English, as in the Python viewer), "text" what it shows
         const char* state = "Starting";
+        const char* text = Tr("Starting", "Démarrage");
         switch (st.state)
         {
-        case hndcam::CameraState::NoWifi: state = "No Wi-Fi connection"; break;
-        case hndcam::CameraState::Searching: state = "Searching for the camera"; break;
-        case hndcam::CameraState::Connecting: state = "Starting video"; break;
-        case hndcam::CameraState::JoiningWifi: state = "Connecting to the camera Wi-Fi"; break;
-        case hndcam::CameraState::Streaming: state = "Streaming"; break;
-        case hndcam::CameraState::WifiOff: state = "Wi-Fi is turned off"; break;
+        case hndcam::CameraState::NoWifi: state = "No Wi-Fi connection"; text = Tr(state, "Pas de connexion Wi-Fi"); break;
+        case hndcam::CameraState::Searching: state = "Searching for the camera"; text = Tr(state, "Recherche de la caméra"); break;
+        case hndcam::CameraState::Connecting: state = "Starting video"; text = Tr(state, "Démarrage de la vidéo"); break;
+        case hndcam::CameraState::JoiningWifi: state = "Connecting to the camera Wi-Fi"; text = Tr(state, "Connexion au Wi-Fi de la caméra"); break;
+        case hndcam::CameraState::Streaming: state = "Streaming"; text = Tr(state, "Image en direct"); break;
+        case hndcam::CameraState::WifiOff: state = "Wi-Fi is turned off"; text = Tr(state, "Le Wi-Fi est éteint"); break;
         default: break;
         }
 
@@ -176,7 +183,9 @@ namespace
         else
             sprintf_s(numbers, "\"fps\":%.1f,\"angle\":null,\"frames\":%llu", currentFps, st.frames);
         return std::string("{\"state\":") + JsonString(state) + ",\"camera\":" + JsonString(Utf8(st.cameraName)) + "," + numbers
-            + ",\"wifiOff\":" + (st.state == hndcam::CameraState::WifiOff ? "true" : "false") + "}";
+            + ",\"wifiOff\":" + (st.state == hndcam::CameraState::WifiOff ? "true" : "false")
+            + ",\"text\":" + JsonString(text) + ",\"lang\":\"" + (hndcam::UiFrench() ? "fr" : "en") + "\""
+            + ",\"version\":\"" HNDCAM_VERSION_STR "\"}";
     }
 
     void ServeStream(SOCKET s)
@@ -302,12 +311,12 @@ namespace
 
     void InitLog()
     {
-        // diagnostic log: %TEMP%\HndViewer.log
+        // diagnostic log: %TEMP%\CAM-Oreille.log
         wchar_t logPath[MAX_PATH] = {};
         DWORD tempLength = GetTempPathW(ARRAYSIZE(logPath), logPath);
         if (tempLength > 0 && tempLength < MAX_PATH - 16)
         {
-            wcscat_s(logPath, L"HndViewer.log");
+            wcscat_s(logPath, HNDCAM_VIEWER_NAME L".log");
             hndcam::LogInit(logPath);
         }
     }
@@ -359,7 +368,7 @@ namespace
         return {};
     }
 
-    // Starts "HndViewer.exe /wifi-on ..." with administrator rights: Windows shows its permission prompt.
+    // Starts "CAM-Oreille.exe /wifi-on ..." with administrator rights: Windows shows its permission prompt.
     bool StartWifiHelper(HWND owner, const hndcam::WifiAdapter& adapter, bool restore)
     {
         wchar_t self[MAX_PATH] = {};
@@ -429,24 +438,28 @@ namespace
 
         std::vector<std::wstring> labels;
         for (const auto& a : dialog.adapters)
-            labels.push_back(a.name + (a.enabled ? L"   (Wi-Fi turned off)" : L"   (disabled)"));
+            labels.push_back(a.name + (a.enabled ? Tr(L"   (Wi-Fi turned off)", L"   (Wi-Fi coupé)") : Tr(L"   (disabled)", L"   (désactivée)")));
         std::vector<TASKDIALOG_BUTTON> radios;
         for (size_t i = 0; i < labels.size(); i++)
             radios.push_back({ FirstAdapterRadio + (int)i, labels[i].c_str() });
 
         const std::wstring network = CurrentNetworkText();
         const std::wstring content =
-            L"The camera creates its own Wi-Fi network (HNDEC_...) with its own address range, 192.168.1.x"
-            + (network.empty() ? std::wstring() : L", different from the network this PC uses now (" + network + L")")
-            + L". To join it, this PC needs a Wi-Fi adapter turned on, and all of them are off.\n\n"
-            L"Choose the adapter to turn on. Windows will ask for your permission: turning an adapter on needs administrator rights.";
+            Tr(L"The camera creates its own Wi-Fi network (HNDEC_...) with its own address range, 192.168.1.x",
+               L"La caméra crée son propre réseau Wi-Fi (HNDEC_...) avec sa propre plage d'adresses, 192.168.1.x")
+            + (network.empty() ? std::wstring()
+                : Tr(L", different from the network this PC uses now (", L", différente de celle du réseau utilisé en ce moment par ce PC (") + network + L")")
+            + Tr(L". To join it, this PC needs a Wi-Fi adapter turned on, and all of them are off.\n\n"
+                 L"Choose the adapter to turn on. Windows will ask for your permission: turning an adapter on needs administrator rights.",
+                 L". Pour le rejoindre, ce PC a besoin d'une carte Wi-Fi allumée, et elles sont toutes éteintes.\n\n"
+                 L"Choisissez la carte à allumer. Windows va demander votre autorisation : allumer une carte demande les droits administrateur.");
 
-        TASKDIALOG_BUTTON buttons[] = { { TurnOnButton, L"Turn on Wi-Fi" }, { NotNowButton, L"Not now" } };
+        TASKDIALOG_BUTTON buttons[] = { { TurnOnButton, Tr(L"Turn on Wi-Fi", L"Allumer le Wi-Fi") }, { NotNowButton, Tr(L"Not now", L"Pas maintenant") } };
         TASKDIALOGCONFIG config{ sizeof(config) };
         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_VERIFICATION_FLAG_CHECKED;
         config.pszWindowTitle = AppTitle;
         config.pszMainIcon = TD_INFORMATION_ICON;
-        config.pszMainInstruction = L"Turn on Wi-Fi to connect to the camera";
+        config.pszMainInstruction = Tr(L"Turn on Wi-Fi to connect to the camera", L"Allumer le Wi-Fi pour se connecter à la caméra");
         config.pszContent = content.c_str();
         config.pButtons = buttons;
         config.cButtons = ARRAYSIZE(buttons);
@@ -454,7 +467,7 @@ namespace
         config.pRadioButtons = radios.data();
         config.cRadioButtons = (UINT)radios.size();
         config.nDefaultRadioButton = FirstAdapterRadio;
-        config.pszVerificationText = L"Turn the Wi-Fi adapter off again when the viewer closes";
+        config.pszVerificationText = Tr(L"Turn the Wi-Fi adapter off again when CAM-Oreille closes", L"Éteindre de nouveau la carte Wi-Fi à la fermeture de CAM-Oreille");
         config.pfCallback = WifiDialogProc;
         config.lpCallbackData = (LONG_PTR)&dialog;
         int clicked = 0;
@@ -501,14 +514,22 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         LocalFree(argv);
         return code;
     }
+    // "Uninstall" in Settings > Apps
+    if (argv && argc == 2 && _wcsicmp(argv[1], L"/uninstall") == 0)
+    {
+        InitLog();
+        LocalFree(argv);
+        return hndcam::Uninstall();
+    }
     if (argv)
         LocalFree(argv);
 
     // one viewer at a time: the camera accepts a single client
-    HANDLE instance = CreateMutexW(nullptr, TRUE, L"Local\\HndEarCameraViewer");
+    HANDLE instance = CreateMutexW(nullptr, TRUE, HNDCAM_VIEWER_MUTEX);
     if (GetLastError() == ERROR_ALREADY_EXISTS)
     {
-        MessageBoxW(nullptr, L"The HND Ear Camera viewer is already running.\nLook for its page in your web browser.", AppTitle, MB_ICONINFORMATION);
+        MessageBoxW(nullptr, Tr(L"CAM-Oreille is already open.\nLook for its page in your web browser.",
+            L"CAM-Oreille est déjà ouvert.\nCherchez sa page dans votre navigateur."), AppTitle, MB_ICONINFORMATION);
         return 0;
     }
 
@@ -516,23 +537,38 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
     if (!LoadPage())
     {
-        MessageBoxW(nullptr, L"The viewer page is missing from the program resources.", AppTitle, MB_ICONERROR);
+        MessageBoxW(nullptr, Tr(L"The viewer page is missing from the program resources.",
+            L"La page du visualiseur manque dans les ressources du programme."), AppTitle, MB_ICONERROR);
         return 1;
     }
 
     WSADATA wsa{};
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
     {
-        MessageBoxW(nullptr, L"Windows networking could not be initialized.", AppTitle, MB_ICONERROR);
+        MessageBoxW(nullptr, Tr(L"Windows networking could not be initialized.", L"Le réseau de Windows n'a pas pu être initialisé."), AppTitle, MB_ICONERROR);
         return 1;
     }
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
+    // downloaded copy (WhatsApp, e-mail link...): offer to install it, then let the installed copy take over
+    std::wstring installedExe;
+    if (hndcam::InstallIfWanted(installedExe))
+    {
+        ReleaseMutex(instance);
+        CloseHandle(instance);
+        AllowSetForegroundWindow(ASFW_ANY); // its Wi-Fi window may come to the front
+        ShellExecuteW(nullptr, L"open", installedExe.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+        CoUninitialize();
+        WSACleanup();
+        return 0;
+    }
 
     u_short port = 0;
     SOCKET listener = Listen(port);
     if (listener == INVALID_SOCKET)
     {
-        MessageBoxW(nullptr, L"No free local port was found for the viewer page (8765-8774).", AppTitle, MB_ICONERROR);
+        MessageBoxW(nullptr, Tr(L"No free local port was found for the viewer page (8765-8774).",
+            L"Aucun port local libre n'a été trouvé pour la page (8765-8774)."), AppTitle, MB_ICONERROR);
         WSACleanup();
         return 1;
     }
@@ -548,7 +584,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
     wchar_t url[64];
     swprintf_s(url, L"http://127.0.0.1:%u/", port);
-    hndcam::Log(L"HndViewer %s serving %s", HNDCAM_VERSION_WSTR, url);
+    hndcam::Log(L"CAM-Oreille %s serving %s", HNDCAM_VERSION_WSTR, url);
     ShellExecuteW(nullptr, L"open", url, nullptr, nullptr, SW_SHOWNORMAL);
 
     const ULONGLONG started = GetTickCount64();
@@ -562,7 +598,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         if (!seenOnce && GetTickCount64() - started > NoPageTimeoutMs)
         {
             wchar_t text[256];
-            swprintf_s(text, L"The viewer page was not opened.\nOpen %s in your web browser, then start the viewer again.", url);
+            swprintf_s(text, Tr(L"The viewer page was not opened.\nOpen %s in your web browser, then start CAM-Oreille again.",
+                L"La page n'a pas été ouverte.\nOuvrez %s dans votre navigateur, puis relancez CAM-Oreille."), url);
             MessageBoxW(nullptr, text, AppTitle, MB_ICONWARNING);
             break;
         }

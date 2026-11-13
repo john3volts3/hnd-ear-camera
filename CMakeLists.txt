@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(HndEarCamera VERSION 1.1.0 LANGUAGES CXX RC)
+project(HndEarCamera VERSION 1.2.0 LANGUAGES CXX RC)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
@@ -38,11 +38,14 @@ set_source_files_properties(${CMAKE_BINARY_DIR}/viewer_page.rc PROPERTIES OBJECT
 add_executable(HndViewer WIN32
     src/viewer/main.cpp
     src/viewer/WifiAdapters.cpp
+    src/viewer/Installer.cpp
     src/viewer/HndViewer.rc
     src/viewer/HndViewer.manifest
     ${CMAKE_BINARY_DIR}/viewer_page.rc)
+set_target_properties(HndViewer PROPERTIES OUTPUT_NAME "CAM-Oreille")
+set_source_files_properties(src/viewer/HndViewer.rc PROPERTIES OBJECT_DEPENDS ${CMAKE_SOURCE_DIR}/src/viewer/CAM-Oreille.ico)
 target_include_directories(HndViewer PRIVATE src/viewer)
-target_link_libraries(HndViewer PRIVATE hndcore shell32 comctl32 setupapi cfgmgr32)
+target_link_libraries(HndViewer PRIVATE hndcore shell32 comctl32 setupapi cfgmgr32 version)
 
 # --- Media Foundation media source (loaded by the Windows Frame Server) ------------------------
 if(EXISTS ${CMAKE_SOURCE_DIR}/src/source/dllmain.cpp)

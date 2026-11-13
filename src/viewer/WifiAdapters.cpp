@@ -16,6 +16,7 @@ namespace hndcam
         constexpr DWORD IfTypeWifi = 71;          // IF_TYPE_IEEE80211
         constexpr DWORD NcfPhysical = 0x4;        // driver "Characteristics": physical adapter (excludes Wi-Fi Direct, VPN...)
         constexpr ULONGLONG InterfaceWaitMs = 15000; // the Wi-Fi interface appears a few seconds after the device starts
+        constexpr ULONGLONG RadioSettleMs = 8000;    // then its saved radio state (Wi-Fi button) is restored a moment later
 
         DWORD ReadDword(HKEY key, const wchar_t* name)
         {
@@ -221,6 +222,14 @@ namespace hndcam
             const ULONGLONG deadline = GetTickCount64() + InterfaceWaitMs;
             while (!ReadRadio(adapter) && GetTickCount64() < deadline)
                 Sleep(250);
+            // An adapter disabled while its Wi-Fi was off first reports the radio on, then off once the
+            // driver restores the saved state: watch it for a few seconds before deciding.
+            const ULONGLONG settle = GetTickCount64() + RadioSettleMs;
+            while (adapter.radioOn && GetTickCount64() < settle)
+            {
+                Sleep(500);
+                ReadRadio(adapter);
+            }
         }
         if (!adapter.radioOn && !adapter.hardwareOff && SetRadio(adapter.interfaceGuid, true))
             radioHere = true;
