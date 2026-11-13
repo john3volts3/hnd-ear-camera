@@ -10,7 +10,7 @@ Les caméras d'oreille / loupes Wi-Fi HND (modèle HND-NE3, réseau Wi-Fi `HNDEC
 ## 3. Objectifs et critères de succès
 - Voir l'image de la caméra sur un PC Windows, sans le téléphone, en moins de 20 s après l'allumage.
 - Image redressée automatiquement grâce à l'accéléromètre de la caméra.
-- Utiliser la caméra dans l'app Caméra de Windows, Teams, Zoom, les navigateurs (caméra virtuelle).
+- Utiliser la caméra dans l'app Caméra de Windows, Teams, Zoom, les navigateurs (caméra virtuelle) : mis de côté le 2026-11-13.
 - Distribution simple : un `.zip` par messagerie, sans installation pour le visualiseur.
 
 ## 4. Périmètre
@@ -29,10 +29,10 @@ Les caméras d'oreille / loupes Wi-Fi HND (modèle HND-NE3, réseau Wi-Fi `HNDEC
 | EF-07 | Reprise automatique de l'image quand la caméra est éteinte puis rallumée | indispensable | livrée en 1.0.0 (visualiseur) |
 | EF-08 | Arrêt automatique du visualiseur à la fermeture de la page et retour au Wi-Fi habituel | important | livrée en 1.0.0 (visualiseur) |
 | EF-09 | Visualiseur autonome `.exe` sans Python, sans installation, sans droits administrateur (depuis 1.1.0 : droits demandés seulement pour allumer une carte Wi-Fi) | indispensable | livrée en 1.0.0 |
-| EF-10 | Caméra virtuelle « HND Ear Camera » visible dans l'app Caméra, Teams, Zoom, navigateurs | indispensable | développée, à tester |
-| EF-11 | Écran d'attente avec instructions dans la caméra virtuelle quand la caméra n'est pas connectée | important | développée, à tester |
-| EF-12 | Installateur autonome (un `.exe`), désinstallation, entrée dans « Applications installées » | indispensable | développé, à tester |
-| EF-13 | Recréation automatique de la caméra virtuelle après redémarrage du PC | important | développée, à tester |
+| EF-10 | Caméra virtuelle « HND Ear Camera » visible dans l'app Caméra, Teams, Zoom, navigateurs | souhaitable (était indispensable) | mise de côté le 2026-11-13 (développée, jamais installée ni testée) |
+| EF-11 | Écran d'attente avec instructions dans la caméra virtuelle quand la caméra n'est pas connectée | important | mise de côté le 2026-11-13 (développée, non testée) |
+| EF-12 | Installateur autonome (un `.exe`), désinstallation, entrée dans « Applications installées » | souhaitable (était indispensable) | mise de côté le 2026-11-13 (développé, non testé) |
+| EF-13 | Recréation automatique de la caméra virtuelle après redémarrage du PC | important | mise de côté le 2026-11-13 (développée, non testée) |
 | EF-14 | Wi-Fi éteint au lancement (carte désactivée ou bouton Wi-Fi coupé) : liste des cartes Wi-Fi à cocher, explication (la caméra a son propre réseau et sa propre plage d'adresses), allumage de la carte choisie avec l'autorisation administrateur, sans passer par le Gestionnaire de périphériques | important | livrée en 1.1.0 |
 | EF-15 | Remettre la carte Wi-Fi dans son état d'avant à la fermeture (case cochée par défaut) | important | livrée en 1.1.0 |
 | EF-16 | Rappel dans la page quand le Wi-Fi du PC est éteint | important | livrée en 1.1.0 |
@@ -81,6 +81,7 @@ Les caméras d'oreille / loupes Wi-Fi HND (modèle HND-NE3, réseau Wi-Fi `HNDEC
 ## 9. Questions ouvertes et décisions
 - Décision : visualiseur dans le navigateur (pas de tkinter : décodage JPEG impossible sans Pillow).
 - Décision : la caméra virtuelle parle elle-même à la caméra depuis le service Frame Server (pas de programme intermédiaire).
+- Décision (2026-11-13) : caméra virtuelle (EF-10 à EF-13) **mise de côté** : CAM-Oreille couvre le besoin (voir l'image, photos) ; elle ne servirait qu'aux appels vidéo et à l'enregistrement. Le code (`src/source`, `src/setup`) reste dans le dépôt et continue d'être compilé ; à reprendre par un test pas à pas (installation, app Caméra, redémarrage, désinstallation) et un renommage « CAM-Oreille Webcam » si le besoin revient.
 - Ouvert : la caméra virtuelle, chargée par un service Windows, a-t-elle le droit de changer de réseau Wi-Fi ?
 - Ouvert : la caméra propose-t-elle un mode « routeur » (`wifi_mode: AP` dans sa fiche) qui éviterait de changer de réseau Wi-Fi ?
 - Ouvert : visualiseur et caméra virtuelle utilisés en même temps sur la même caméra (un seul client accepté).

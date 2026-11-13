@@ -7,7 +7,7 @@ Utiliser une **caméra d'oreille Wi-Fi HND** (HND-NE3, réseau Wi-Fi nommé `HND
 | Outil | Rôle | Prérequis |
 |---|---|---|
 | **CAM-Oreille.exe** | Image en direct dans le navigateur, rotation automatique, photos ; s'installe dans `C:\CAM-OREILLE` avec une icône sur le bureau | Windows 10/11, pas de droits administrateur (sauf pour allumer une carte Wi-Fi) |
-| HndCamSetup.exe *(en cours)* | Ajoute « HND Ear Camera » comme webcam (app Caméra, Teams, Zoom, navigateurs) | Windows 11, droits administrateur une fois |
+| HndCamSetup.exe *(mis de côté, non testé)* | Ajoute « HND Ear Camera » comme webcam (app Caméra, Teams, Zoom, navigateurs) | Windows 11, droits administrateur une fois |
 
 L'application s'affiche en français quand Windows est affiché en français ou utilise des formats régionaux français, en anglais sinon.
 

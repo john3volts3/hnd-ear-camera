@@ -138,4 +138,7 @@
 1. Lien Google Drive (facultatif, par l'utilisateur). Vérification automatique des mises à jour (PRD EF-24) dans une prochaine version.
 2. Piste future : réglage réseau temporaire (PRD EF-17), seulement si un ralentissement est mesuré.
 3. Projet futur : application Android (PRD EF-22), nouveau skill d'environnement à créer.
-4. Toujours en attente : test de la caméra virtuelle ; suppression des deux profils Wi-Fi de test `HNDEC_…` (avec l'accord de l'utilisateur).
+4. Caméra virtuelle mise de côté à la demande de l'utilisateur (PRD EF-10 à EF-13, décision du 2026-11-13).
+
+#### Environnement du PC (hors dépôt)
+- 06:25 : à la demande de l'utilisateur, suppression des deux profils Wi-Fi de test `HNDEC_…` (profils « utilisateur courant » créés pendant le diagnostic du 2026-11-12), après export dans un dossier de sauvegarde local (`netsh wlan export profile`). Aucun profil `HNDEC_…` restant ; CAM-Oreille utilise un profil temporaire.

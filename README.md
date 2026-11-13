@@ -7,7 +7,7 @@ Use an **HND Wi-Fi ear camera** (HND-NE3, Wi-Fi network named `HNDEC_...`, norma
 | Tool | What it does | Requirements |
 |---|---|---|
 | **CAM-Oreille.exe** | Live picture in your web browser, automatic rotation, photos; installs itself in `C:\CAM-OREILLE` with a desktop icon | Windows 10/11, no admin rights (except to turn a Wi-Fi adapter on) |
-| HndCamSetup.exe *(in progress)* | Adds "HND Ear Camera" as a webcam (Camera app, Teams, Zoom, browsers) | Windows 11, admin rights once |
+| HndCamSetup.exe *(set aside, not tested)* | Adds "HND Ear Camera" as a webcam (Camera app, Teams, Zoom, browsers) | Windows 11, admin rights once |
 
 The app is in French when Windows is displayed in French or uses French regional formats, in English otherwise.
 
