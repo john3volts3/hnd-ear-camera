@@ -40,7 +40,7 @@ A Python version of the viewer (standard library only, test tool) is in `tools/v
 ## Share with friends
 Send the package `CAM-Oreille-<version>.zip` (program + bilingual notice):
 - **WhatsApp:** send the `.zip` as a document.
-- **E-mail:** mail services block `.exe` files, even inside a `.zip`: send a **download link** instead (Google Drive or the GitHub "Releases" page).
+- **E-mail:** mail services block `.exe` files, even inside a `.zip`: send a **download link** instead: the [latest release](../../releases/latest) page of this repository, or a Google Drive link.
 - Do not send a script to run (`.cmd`, `.ps1`, command to paste in PowerShell): it is blocked by mail services and it is the method used by scams.
 
 ## Build

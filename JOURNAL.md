@@ -131,9 +131,11 @@
 
 #### Livraison
 - 1.2.0 : documentation, commit, push, paquet `dist/CAM-Oreille-1.2.0.zip` (non suivi par git).
+- 06:20 : commit `6b641e8`, push, sauvegarde de l'environnement Claude (mémoire « protocole de test » mise à jour : nouveau nom du journal).
+- 06:25 : historique complet vérifié (aucune donnée personnelle, auteur en adresse GitHub anonyme), dépôt GitHub rendu **public** avec l'accord de l'utilisateur, release `v1.2.0` publiée avec `CAM-Oreille-1.2.0.zip` (téléchargement vérifié sans connexion). Lien relatif vers la dernière version ajouté aux README ; PRD EF-21 livrée, EF-24 (vérification automatique des mises à jour) proposée.
 
 #### À faire
-1. Publication pour les amis : lien Google Drive (par l'utilisateur) ; page « Releases » GitHub après vérification de l'historique et accord explicite pour rendre le dépôt public.
+1. Lien Google Drive (facultatif, par l'utilisateur). Vérification automatique des mises à jour (PRD EF-24) dans une prochaine version.
 2. Piste future : réglage réseau temporaire (PRD EF-17), seulement si un ralentissement est mesuré.
 3. Projet futur : application Android (PRD EF-22), nouveau skill d'environnement à créer.
 4. Toujours en attente : test de la caméra virtuelle ; suppression des deux profils Wi-Fi de test `HNDEC_…` (avec l'accord de l'utilisateur).

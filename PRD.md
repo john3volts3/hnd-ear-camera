@@ -40,8 +40,9 @@ Les caméras d'oreille / loupes Wi-Fi HND (modèle HND-NE3, réseau Wi-Fi `HNDEC
 | EF-18 | Nom de l'application « CAM-Oreille » (exe, fenêtres, page, icône) | important | livrée en 1.2.0 |
 | EF-19 | Installation au premier lancement dans `C:\CAM-OREILLE` avec icône sur le bureau, sans droits administrateur ; mise à jour ; désinstallation depuis Paramètres > Applications | important | livrée en 1.2.0 |
 | EF-20 | Interface en français quand Windows est affiché en français ou utilise des formats régionaux français (anglais par défaut) | important | livrée en 1.2.0 |
-| EF-21 | Distribution aux amis : `.zip` par WhatsApp, lien Google Drive, page « Releases » GitHub (dépôt rendu public après vérification des données personnelles) ; pas de script à exécuter | important | paquet `.zip` livré en 1.2.0 ; lien Google Drive (par l'utilisateur) et page « Releases » (publication du dépôt à confirmer) à faire |
+| EF-21 | Distribution aux amis : `.zip` par WhatsApp, lien Google Drive, page « Releases » GitHub (dépôt rendu public après vérification des données personnelles) ; pas de script à exécuter | important | livrée en 1.2.0 (paquet `.zip`, dépôt public, release `v1.2.0`) ; lien Google Drive à créer par l'utilisateur s'il le souhaite |
 | EF-23 | Version affichée dans la page et dans le titre des fenêtres | souhaitable | livrée en 1.2.0 |
+| EF-24 | Vérification automatique des mises à jour au lancement (dernière release GitHub, avant de rejoindre le Wi-Fi de la caméra, ignorée sans internet) et proposition de télécharger et installer la nouvelle version | souhaitable | proposée (version future) |
 | EF-22 | Application Android remplaçant l'application « HND » : image, rotation, photo, sans localisation ni compte ni publicité | souhaitable | proposée (projet futur) |
 
 ## 6. Exigences non fonctionnelles

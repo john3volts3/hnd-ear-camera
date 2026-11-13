@@ -40,7 +40,7 @@ Une version Python du visualiseur (bibliothèque standard uniquement, outil de t
 ## Partager avec des amis
 Envoyez le paquet `CAM-Oreille-<version>.zip` (programme + notice bilingue) :
 - **WhatsApp :** envoyez le `.zip` comme document.
-- **E-mail :** les messageries bloquent les fichiers `.exe`, même dans un `.zip` : envoyez plutôt un **lien de téléchargement** (Google Drive ou la page « Releases » de GitHub).
+- **E-mail :** les messageries bloquent les fichiers `.exe`, même dans un `.zip` : envoyez plutôt un **lien de téléchargement** : la page de la [dernière version](../../releases/latest) de ce dépôt, ou un lien Google Drive.
 - N'envoyez pas de script à exécuter (`.cmd`, `.ps1`, commande à coller dans PowerShell) : c'est bloqué par les messageries et c'est la méthode des arnaques.
 
 ## Compilation
