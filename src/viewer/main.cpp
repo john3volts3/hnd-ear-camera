@@ -3,8 +3,10 @@
 // Closing the browser page stops the program. Same web page as tools/viewer/hnd_viewer.py.
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <iphlpapi.h>
 #include <windows.h>
 #include <shellapi.h>
+#include <commctrl.h>
 #include <objbase.h>
 #include <cstdio>
 #include <string>
@@ -12,6 +14,7 @@
 #include "CameraClient.h"
 #include "HndCam.h"
 #include "Log.h"
+#include "WifiAdapters.h"
 #include "resource.h"
 
 namespace
@@ -163,6 +166,7 @@ namespace
         case hndcam::CameraState::Connecting: state = "Starting video"; break;
         case hndcam::CameraState::JoiningWifi: state = "Connecting to the camera Wi-Fi"; break;
         case hndcam::CameraState::Streaming: state = "Streaming"; break;
+        case hndcam::CameraState::WifiOff: state = "Wi-Fi is turned off"; break;
         default: break;
         }
 
@@ -171,7 +175,8 @@ namespace
             sprintf_s(numbers, "\"fps\":%.1f,\"angle\":%.1f,\"frames\":%llu", currentFps, st.angle, st.frames);
         else
             sprintf_s(numbers, "\"fps\":%.1f,\"angle\":null,\"frames\":%llu", currentFps, st.frames);
-        return std::string("{\"state\":") + JsonString(state) + ",\"camera\":" + JsonString(Utf8(st.cameraName)) + "," + numbers + "}";
+        return std::string("{\"state\":") + JsonString(state) + ",\"camera\":" + JsonString(Utf8(st.cameraName)) + "," + numbers
+            + ",\"wifiOff\":" + (st.state == hndcam::CameraState::WifiOff ? "true" : "false") + "}";
     }
 
     void ServeStream(SOCKET s)
@@ -295,6 +300,171 @@ namespace
         return true;
     }
 
+    void InitLog()
+    {
+        // diagnostic log: %TEMP%\HndViewer.log
+        wchar_t logPath[MAX_PATH] = {};
+        DWORD tempLength = GetTempPathW(ARRAYSIZE(logPath), logPath);
+        if (tempLength > 0 && tempLength < MAX_PATH - 16)
+        {
+            wcscat_s(logPath, L"HndViewer.log");
+            hndcam::LogInit(logPath);
+        }
+    }
+
+    // --- Wi-Fi turned off: the user picks an adapter to turn on (administrator rights) ----------------
+    constexpr int TurnOnButton = 100;
+    constexpr int NotNowButton = 101;
+    constexpr int FirstAdapterRadio = 200;
+
+    struct WifiDialog
+    {
+        std::vector<hndcam::WifiAdapter> adapters;
+        int selected = 0;
+        bool restore = true; // turn the adapter off again when the viewer closes
+    };
+
+    // "192.168.0.x, Ethernet": the network this PC already uses (it has a default gateway), shown next to the camera range
+    std::wstring CurrentNetworkText()
+    {
+        ULONG size = 16 * 1024;
+        std::vector<uint8_t> buffer(size);
+        const ULONG flags = GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+        ULONG err = GetAdaptersAddresses(AF_INET, flags, nullptr, (PIP_ADAPTER_ADDRESSES)buffer.data(), &size);
+        if (err == ERROR_BUFFER_OVERFLOW)
+        {
+            buffer.resize(size);
+            err = GetAdaptersAddresses(AF_INET, flags, nullptr, (PIP_ADAPTER_ADDRESSES)buffer.data(), &size);
+        }
+        if (err != NO_ERROR)
+            return {};
+
+        for (auto a = (PIP_ADAPTER_ADDRESSES)buffer.data(); a; a = a->Next)
+        {
+            if (a->OperStatus != IfOperStatusUp || !a->FirstGatewayAddress)
+                continue;
+            for (auto u = a->FirstUnicastAddress; u; u = u->Next)
+            {
+                if (u->Address.lpSockaddr->sa_family != AF_INET)
+                    continue;
+                const auto* ip = reinterpret_cast<const uint8_t*>(&reinterpret_cast<sockaddr_in*>(u->Address.lpSockaddr)->sin_addr);
+                wchar_t text[160];
+                if (u->OnLinkPrefixLength == 24)
+                    swprintf_s(text, L"%u.%u.%u.x, %s", ip[0], ip[1], ip[2], a->FriendlyName);
+                else
+                    swprintf_s(text, L"%u.%u.%u.%u, %s", ip[0], ip[1], ip[2], ip[3], a->FriendlyName);
+                return text;
+            }
+        }
+        return {};
+    }
+
+    // Starts "HndViewer.exe /wifi-on ..." with administrator rights: Windows shows its permission prompt.
+    bool StartWifiHelper(HWND owner, const hndcam::WifiAdapter& adapter, bool restore)
+    {
+        wchar_t self[MAX_PATH] = {};
+        GetModuleFileNameW(nullptr, self, ARRAYSIZE(self));
+        wchar_t params[512];
+        swprintf_s(params, L"/wifi-on %lu %d \"%s\"", GetCurrentProcessId(), restore ? 1 : 0, adapter.instanceId.c_str());
+
+        SHELLEXECUTEINFOW sei{ sizeof(sei) };
+        sei.fMask = SEE_MASK_NOASYNC;
+        sei.hwnd = owner;
+        sei.lpVerb = L"runas";
+        sei.lpFile = self;
+        sei.lpParameters = params;
+        sei.nShow = SW_HIDE;
+        if (ShellExecuteExW(&sei))
+        {
+            hndcam::Log(L"Wi-Fi: helper started for %s (turn off on exit: %d)", adapter.name.c_str(), restore);
+            return true;
+        }
+        const DWORD err = GetLastError();
+        hndcam::Log(err == ERROR_CANCELLED ? L"Wi-Fi: permission refused (%lu)" : L"Wi-Fi: helper not started (%lu)", err);
+        return false;
+    }
+
+    HRESULT CALLBACK WifiDialogProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM, LONG_PTR refData)
+    {
+        auto* dialog = reinterpret_cast<WifiDialog*>(refData);
+        switch (msg)
+        {
+        case TDN_CREATED:
+            SendMessageW(hwnd, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, TurnOnButton, TRUE);
+            SetForegroundWindow(hwnd);
+            break;
+        case TDN_RADIO_BUTTON_CLICKED:
+            dialog->selected = (int)wParam - FirstAdapterRadio;
+            break;
+        case TDN_VERIFICATION_CLICKED:
+            dialog->restore = wParam != 0;
+            break;
+        case TDN_BUTTON_CLICKED:
+            // permission refused: the dialog stays open (try again, or "Not now")
+            if ((int)wParam == TurnOnButton && !StartWifiHelper(hwnd, dialog->adapters[dialog->selected], dialog->restore))
+                return S_FALSE;
+            break;
+        }
+        return S_OK;
+    }
+
+    // Shown before the browser opens, while this program still has the foreground: the Windows
+    // permission prompt then appears in front instead of blinking in the taskbar.
+    void OfferToTurnWifiOn()
+    {
+        if (hndcam::WifiConnector::IsWifiOn())
+            return;
+
+        WifiDialog dialog;
+        for (const auto& a : hndcam::ListWifiAdapters())
+        {
+            if (!a.hardwareOff)
+                dialog.adapters.push_back(a);
+        }
+        if (dialog.adapters.empty())
+        {
+            hndcam::Log(L"Wi-Fi: off, and no adapter can be turned on by software");
+            return; // the page shows the reminder
+        }
+
+        std::vector<std::wstring> labels;
+        for (const auto& a : dialog.adapters)
+            labels.push_back(a.name + (a.enabled ? L"   (Wi-Fi turned off)" : L"   (disabled)"));
+        std::vector<TASKDIALOG_BUTTON> radios;
+        for (size_t i = 0; i < labels.size(); i++)
+            radios.push_back({ FirstAdapterRadio + (int)i, labels[i].c_str() });
+
+        const std::wstring network = CurrentNetworkText();
+        const std::wstring content =
+            L"The camera creates its own Wi-Fi network (HNDEC_...) with its own address range, 192.168.1.x"
+            + (network.empty() ? std::wstring() : L", different from the network this PC uses now (" + network + L")")
+            + L". To join it, this PC needs a Wi-Fi adapter turned on, and all of them are off.\n\n"
+            L"Choose the adapter to turn on. Windows will ask for your permission: turning an adapter on needs administrator rights.";
+
+        TASKDIALOG_BUTTON buttons[] = { { TurnOnButton, L"Turn on Wi-Fi" }, { NotNowButton, L"Not now" } };
+        TASKDIALOGCONFIG config{ sizeof(config) };
+        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_VERIFICATION_FLAG_CHECKED;
+        config.pszWindowTitle = AppTitle;
+        config.pszMainIcon = TD_INFORMATION_ICON;
+        config.pszMainInstruction = L"Turn on Wi-Fi to connect to the camera";
+        config.pszContent = content.c_str();
+        config.pButtons = buttons;
+        config.cButtons = ARRAYSIZE(buttons);
+        config.nDefaultButton = TurnOnButton;
+        config.pRadioButtons = radios.data();
+        config.cRadioButtons = (UINT)radios.size();
+        config.nDefaultRadioButton = FirstAdapterRadio;
+        config.pszVerificationText = L"Turn the Wi-Fi adapter off again when the viewer closes";
+        config.pfCallback = WifiDialogProc;
+        config.lpCallbackData = (LONG_PTR)&dialog;
+        int clicked = 0;
+        const HRESULT hr = TaskDialogIndirect(&config, &clicked, nullptr, nullptr);
+        if (FAILED(hr))
+            hndcam::LogHr(L"TaskDialogIndirect", hr);
+        else if (clicked != TurnOnButton)
+            hndcam::Log(L"Wi-Fi: left off by the user");
+    }
+
     SOCKET Listen(u_short& port)
     {
         for (int i = 0; i < PortAttempts; i++)
@@ -321,6 +491,19 @@ namespace
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {
+    // administrator helper started by the viewer itself to turn a Wi-Fi adapter on (see StartWifiHelper)
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (argv && argc == 5 && _wcsicmp(argv[1], L"/wifi-on") == 0)
+    {
+        InitLog();
+        const int code = hndcam::RunWifiOnHelper(wcstoul(argv[2], nullptr, 10), wcscmp(argv[3], L"1") == 0, argv[4]);
+        LocalFree(argv);
+        return code;
+    }
+    if (argv)
+        LocalFree(argv);
+
     // one viewer at a time: the camera accepts a single client
     HANDLE instance = CreateMutexW(nullptr, TRUE, L"Local\\HndEarCameraViewer");
     if (GetLastError() == ERROR_ALREADY_EXISTS)
@@ -329,14 +512,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         return 0;
     }
 
-    // diagnostic log: %TEMP%\HndViewer.log
-    wchar_t logPath[MAX_PATH] = {};
-    DWORD tempLength = GetTempPathW(ARRAYSIZE(logPath), logPath);
-    if (tempLength > 0 && tempLength < MAX_PATH - 16)
-    {
-        wcscat_s(logPath, L"HndViewer.log");
-        hndcam::LogInit(logPath);
-    }
+    InitLog();
 
     if (!LoadPage())
     {
@@ -360,6 +536,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         WSACleanup();
         return 1;
     }
+
+    OfferToTurnWifiOn();
 
     g_stop = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     g_camera = new hndcam::CameraClient(HNDCAM_OUT_WIDTH, HNDCAM_OUT_HEIGHT);

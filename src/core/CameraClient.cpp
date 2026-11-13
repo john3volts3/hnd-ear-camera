@@ -69,6 +69,7 @@ namespace hndcam
         case CameraState::Connecting: return L"Connecting";
         case CameraState::Streaming: return L"Streaming";
         case CameraState::JoiningWifi: return L"JoiningWifi";
+        case CameraState::WifiOff: return L"WifiOff";
         default: return L"Stopped";
         }
     }
@@ -271,7 +272,7 @@ namespace hndcam
         auto addresses = GetWifiAddresses();
         if (addresses.empty())
         {
-            SetState(CameraState::NoWifi);
+            SetState(WifiConnector::IsWifiOn() ? CameraState::NoWifi : CameraState::WifiOff);
             return false;
         }
         if (State() != CameraState::Searching)
@@ -550,6 +551,9 @@ namespace hndcam
         {
         case CameraState::NoWifi:
             message = L"Wi-Fi is not connected.\nTurn the camera on: this PC joins its Wi-Fi network (HNDEC_...) automatically.";
+            break;
+        case CameraState::WifiOff:
+            message = L"Wi-Fi is turned off on this PC.\nTurn Wi-Fi on: the camera only works over Wi-Fi.";
             break;
         case CameraState::Searching:
             message = L"Searching for the camera...\nTurn the camera on: this PC joins its Wi-Fi network (HNDEC_...) automatically.\nThe camera must not be connected to a phone at the same time.";

@@ -17,9 +17,13 @@
   .bar button.primary { background: #2d6fd6; border-color: #2d6fd6; color: #fff; padding: 8px 18px; }
   #offset { min-width: 52px; text-align: center; color: #9aa4b2; }
   .hint { color: #7d8794; font-size: 13px; max-width: 520px; text-align: center; padding: 0 16px; margin-top: 18px; }
+  .notice { background: #4a3b12; color: #ffe8a6; border: 1px solid #8a6d1d; border-radius: 6px;
+            max-width: 480px; margin: 0 16px 14px; padding: 10px 14px; text-align: center; }
 </style></head><body>
 <h1>HND Ear Camera</h1>
 <div id="status">Connecting...</div>
+<div id="wifiOff" class="notice" hidden>Wi-Fi is turned off on this PC, and the camera only works over Wi-Fi.
+Turn Wi-Fi on with the Wi-Fi button in the taskbar, or close this page and start the viewer again to choose a Wi-Fi adapter to turn on.</div>
 <div id="view"><img id="img" src="/stream.mjpg" alt="camera"></div>
 <div class="bar">
   <label><input type="checkbox" id="rotate" checked> Auto-rotate</label>
@@ -39,7 +43,7 @@ To stop, close this page and press Ctrl+C in the console window.</p>
 <script>
   const img = document.getElementById('img'), view = document.getElementById('view');
   const rotate = document.getElementById('rotate'), status = document.getElementById('status');
-  const offsetLabel = document.getElementById('offset');
+  const offsetLabel = document.getElementById('offset'), wifiOff = document.getElementById('wifiOff');
   let shown = 0;   // unwrapped displayed angle, avoids spinning when crossing 0/360
   let offset = 0;  // manual orientation, degrees clockwise
   let autoAngle = null;
@@ -104,6 +108,7 @@ To stop, close this page and press Ctrl+C in the console window.</p>
     try {
       const s = await (await fetch('/status.json', {cache: 'no-store'})).json();
       status.textContent = s.state + (s.camera ? ' - ' + s.camera : '') + (s.state === 'Streaming' ? ' - ' + s.fps + ' fps' : '');
+      wifiOff.hidden = !s.wifiOff; // not sent by the Python viewer
       autoAngle = s.angle;
       if (s.state === 'Streaming' && lastState !== '' && lastState !== 'Streaming')
         restartStream();

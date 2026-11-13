@@ -4,12 +4,16 @@ HND Ear Camera - Viewer
 ENGLISH
 
 Shows the picture of an HND Wi-Fi ear camera (Wi-Fi network named "HNDEC_...") in your web browser.
-Nothing to install, no administrator rights. Windows 10 or 11.
+Nothing to install. Windows 10 or 11.
+Administrator rights only to turn a Wi-Fi adapter on when Wi-Fi is off.
 
 1. Turn the camera on (blue light). Close the camera app on your phone.
 2. Double-click HndViewer.exe.
    The first time, Windows may show "Windows protected your PC":
    click "More info", then "Run anyway" (the program is not digitally signed).
+   If Wi-Fi is turned off on the PC, a window lists the Wi-Fi adapters:
+   pick one and click "Turn on Wi-Fi", then allow it (administrator rights).
+   The adapter is turned off again when the viewer closes (box ticked by default).
 3. Your web browser opens. The PC connects to the camera Wi-Fi by itself,
    and the picture appears after a few seconds.
 4. Buttons: automatic rotation, orientation (90 / 5 degree steps), save photo.
@@ -22,12 +26,16 @@ One camera at a time, and one viewer at a time (the camera accepts a single clie
 FRANCAIS
 
 Affiche l'image d'une camera d'oreille Wi-Fi HND (reseau Wi-Fi nomme "HNDEC_...") dans votre navigateur.
-Rien a installer, pas besoin de droits administrateur. Windows 10 ou 11.
+Rien a installer. Windows 10 ou 11.
+Droits administrateur seulement pour allumer une carte Wi-Fi quand le Wi-Fi est eteint.
 
 1. Allumez la camera (voyant bleu). Fermez l'application de la camera sur le telephone.
 2. Double-cliquez sur HndViewer.exe.
    La premiere fois, Windows peut afficher "Windows a protege votre PC" :
    cliquez sur "Informations complementaires", puis "Executer quand meme" (le programme n'est pas signe).
+   Si le Wi-Fi du PC est eteint, une fenetre liste les cartes Wi-Fi :
+   choisissez-en une et cliquez sur "Turn on Wi-Fi", puis autorisez (droits administrateur).
+   La carte est eteinte de nouveau a la fermeture du visualiseur (case cochee par defaut).
 3. Le navigateur s'ouvre. Le PC se connecte tout seul au Wi-Fi de la camera,
    et l'image apparait apres quelques secondes.
 4. Boutons : rotation automatique, orientation (pas de 90 / 5 degres), enregistrer une photo.

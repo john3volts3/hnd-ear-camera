@@ -32,6 +32,14 @@ namespace hndcam
 
         static bool IsCameraSsid(const std::wstring& ssid);
 
+        // False when no Wi-Fi adapter is enabled, or when Wi-Fi is turned off (Wi-Fi button, airplane mode,
+        // physical switch). True when unknown (Wi-Fi service not reachable).
+        static bool IsWifiOn();
+
+        // Radio switches of one Wi-Fi interface: software = Wi-Fi button / airplane mode, hardware = physical switch.
+        // Both stay true when the state cannot be read.
+        static void GetRadioState(HANDLE client, const GUID& interfaceGuid, bool& softwareOn, bool& hardwareOn);
+
     private:
         bool Open();
 

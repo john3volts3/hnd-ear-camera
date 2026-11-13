@@ -4,7 +4,7 @@
 | Composant | Fichier | Rôle |
 |---|---|---|
 | Cœur caméra | `src/core` (bibliothèque statique `hndcore`) | Protocole, réassemblage JPEG, orientation, Wi-Fi, images, journal |
-| Visualiseur autonome | `src/viewer` → `HndViewer.exe` | Mini serveur HTTP local + page web, sans installation |
+| Visualiseur autonome | `src/viewer` → `HndViewer.exe` | Mini serveur HTTP local + page web, sans installation ; allumage de la carte Wi-Fi (`WifiAdapters`) |
 | Visualiseur Python | `tools/viewer/hnd_viewer.py` | Même fonction, bibliothèque standard Python (outil de test) |
 | Page web | `tools/viewer/viewer.html` | Commune aux deux visualiseurs (embarquée dans l'exe) |
 | Caméra virtuelle | `src/source` → `HndCamSource.dll` | Source Media Foundation chargée par le service Frame Server |
@@ -20,7 +20,7 @@
 
 ## 3. Algorithmes
 ### 3.1 Recherche et connexion
-1. Lister les interfaces Wi-Fi actives (`GetAdaptersAddresses`, type IEEE 802.11) et leur adresse de diffusion.
+1. Lister les interfaces Wi-Fi actives (`GetAdaptersAddresses`, type IEEE 802.11) et leur adresse de diffusion. Aucune : état `WifiOff` si aucune carte Wi-Fi n'est activée ou si le Wi-Fi est coupé (`WlanEnumInterfaces` + `wlan_intf_opcode_radio_state`, bouton Wi-Fi, mode avion ou interrupteur), sinon `NoWifi`.
 2. Socket UDP **lié à l'adresse Wi-Fi** (rien ne sort par l'Ethernet), envoi de la découverte, attente 1,2 s.
 3. Réponse acceptée si `brand` contient « HND » ou `model` contient « EAR_CAMERA ».
 4. Sinon, au plus toutes les 6 s : recherche Wi-Fi (`WlanScan`), choix du réseau **ouvert** nommé `HNDEC_…` au meilleur signal, différent du réseau actuel, connexion avec un **profil temporaire** (`WlanConnect`, `wlan_connection_mode_temporary_profile`) : rien n'est enregistré dans Windows.
@@ -37,11 +37,21 @@
 - Filtre passe-bas (facteur 0,25) sur le plus court chemin angulaire.
 
 ### 3.4 Visualiseurs (navigateur)
-- Serveur HTTP sur 127.0.0.1, port 8765 (ou suivant libre jusqu'à 8774 pour l'exe). Routes : `/` page, `/status.json` (état, caméra, images/s, angle), `/stream.mjpg` (flux `multipart/x-mixed-replace`), `/snapshot.jpg` (image brute).
+- Serveur HTTP sur 127.0.0.1, port 8765 (ou suivant libre jusqu'à 8774 pour l'exe). Routes : `/` page, `/status.json` (état, caméra, images/s, angle, `wifiOff`), `/stream.mjpg` (flux `multipart/x-mixed-replace`), `/snapshot.jpg` (image brute).
+- `wifiOff` vrai : la page affiche un encadré jaune (Wi-Fi éteint, comment le rallumer). La version Python n'envoie pas ce champ : encadré jamais affiché.
 - La page applique la rotation en CSS (cadre rond), propose l'orientation manuelle (mémorisée dans le navigateur) et la photo (canvas, telle qu'affichée).
 - Le navigateur ferme un flux MJPEG resté plus de ≈ 7 s sans données : la page rouvre le flux quand l'état repasse à « Streaming », et après une erreur de chargement.
 - Arrêt automatique : aucune connexion vidéo et aucune interrogation d'état depuis 5 s (après la première visite). L'exe s'arrête aussi si la page n'a jamais été ouverte au bout de 2 min. Un seul exe à la fois (mutex).
 - Journal : `%TEMP%\HndViewer.log`.
+
+### 3.4 bis Allumage de la carte Wi-Fi (visualiseur exe, depuis 1.1.0)
+- Au lancement, avant l'ouverture du navigateur (le programme a encore le premier plan : la demande d'autorisation Windows s'affiche devant au lieu de clignoter dans la barre des tâches), si aucun Wi-Fi n'est allumé :
+  1. Liste des cartes Wi-Fi **physiques**, même désactivées : `SetupDiGetClassDevs` (classe réseau, `DIGCF_PRESENT`), clé du pilote lisible sans droits administrateur : `*IfType` = 71 (IEEE 802.11) et `Characteristics` & `NCF_PHYSICAL` (0x4, exclut Wi-Fi Direct et cartes virtuelles), `NetCfgInstanceId` = GUID de l'interface. État : désactivée (`CM_PROB_DISABLED`), Wi-Fi coupé (radio logicielle), coupé par interrupteur (radio matérielle : non proposée).
+  2. Fenêtre `TaskDialogIndirect` : explication (la caméra a son propre réseau Wi-Fi et sa plage d'adresses 192.168.1.x, comparée à celle du réseau actuel du PC lue avec `GetAdaptersAddresses` + passerelle), une case d'option par carte, case « Turn the Wi-Fi adapter off again when the viewer closes » cochée par défaut, bouton « Turn on Wi-Fi » avec bouclier, bouton « Not now ».
+  3. « Turn on Wi-Fi » : `ShellExecuteEx` verbe `runas` sur l'exe lui-même : `HndViewer.exe /wifi-on <pid du visualiseur> <0|1> "<identifiant de la carte>"`. Autorisation refusée : la fenêtre reste ouverte.
+- Assistant administrateur (`/wifi-on`, invisible, ni page ni mutex) : ouvre le processus du visualiseur, active la carte (`SetupDiCallClassInstaller` `DIF_PROPERTYCHANGE`, `DICS_ENABLE` global puis profil courant, comme le Gestionnaire de périphériques), attend son interface Wi-Fi (15 s max), allume la radio logicielle si elle est coupée (`WlanSetInterface` `wlan_intf_opcode_radio_state`). Avec 1 : attend la fin du visualiseur, puis recoupe la radio et/ou désactive la carte (`DICS_DISABLE`, profil courant), uniquement ce qu'il a lui-même changé. Si le PC s'éteint pendant l'utilisation, la carte reste simplement allumée.
+- Le même journal `%TEMP%\HndViewer.log` reçoit les lignes de l'assistant (préfixe « Wi-Fi helper »).
+- Mesures du 2026-11-13 (Ethernet + Wi-Fi de la caméra) : la caméra est en 802.11g à 54 Mbit/s, métrique automatique 55 contre 25 pour l'Ethernet, internet passe donc par le câble ; le DNS de la caméra (192.168.1.1) est connu de Windows mais les résolutions restent normales. Aucun réglage réseau n'est appliqué.
 
 ### 3.5 Caméra virtuelle (à tester)
 - `HndCamSource.dll` : objet COM `{43B7D877-ACE8-4D4D-9A8D-FA946B7B77AA}` (Activator → MediaSource → MediaStream), un flux vidéo 640×480, NV12 (préféré) et RGB32, 30 i/s annoncées (images répétées), échantillons en mémoire système (gestionnaire D3D ignoré).
@@ -51,8 +61,8 @@
 - `HndCamSetup.exe` (droits administrateur) : vérifie Windows 11, copie la DLL et lui-même dans `%ProgramFiles%\HND Ear Camera`, enregistre le CLSID (HKLM), crée la caméra (`MFCreateVirtualCamera`, durée System, tous les utilisateurs), crée la tâche planifiée « HND Ear Camera - restore » (au démarrage, compte SYSTEM, `/restore`) car la caméra virtuelle ne survit pas au redémarrage, et ajoute l'entrée de désinstallation. Options : `/install`, `/uninstall`, `/restore`, `/quiet`.
 
 ## 4. Entrées / sorties
-- Entrées : réseau Wi-Fi de la caméra (UDP 46526, 52219, 44506), clics dans la page.
-- Sorties : page web locale, photos JPEG téléchargées, caméra virtuelle Windows, journaux.
+- Entrées : réseau Wi-Fi de la caméra (UDP 46526, 52219, 44506), clics dans la page, choix de la carte Wi-Fi au lancement.
+- Sorties : page web locale, photos JPEG téléchargées, caméra virtuelle Windows, journaux, état de la carte Wi-Fi (activée / désactivée, radio) le temps de l'utilisation.
 
 ## 5. Limitations
 - Une caméra et un client à la fois ; visualiseur et caméra virtuelle ne doivent pas être utilisés en même temps.
@@ -60,4 +70,6 @@
 - La caméra coupe son Wi-Fi pendant la charge.
 - Résolution 480×480, ≈ 12-14 images/s (limite de la caméra).
 - Caméra virtuelle : Windows 11 uniquement ; non testée à ce jour.
-- Programmes non signés (avertissement SmartScreen).
+- Programmes non signés (avertissement SmartScreen, demande d'autorisation « Éditeur inconnu »).
+- Allumage du Wi-Fi : demande d'autorisation administrateur ; carte coupée par un interrupteur physique non proposée ; mode avion non testé.
+- Quand le Wi-Fi est éteint, le journal note « no wireless interface » toutes les 6 s (sans conséquence).

@@ -74,6 +74,51 @@ namespace hndcam
         return ssid.rfind(CameraSsidPrefix, 0) == 0;
     }
 
+    void WifiConnector::GetRadioState(HANDLE client, const GUID& interfaceGuid, bool& softwareOn, bool& hardwareOn)
+    {
+        softwareOn = hardwareOn = true;
+        DWORD size = 0;
+        PWLAN_RADIO_STATE state = nullptr;
+        if (WlanQueryInterface(client, &interfaceGuid, wlan_intf_opcode_radio_state, nullptr, &size,
+            reinterpret_cast<PVOID*>(&state), nullptr) != ERROR_SUCCESS || !state)
+            return;
+        if (state->dwNumberOfPhys > 0)
+        {
+            softwareOn = hardwareOn = false;
+            for (DWORD i = 0; i < state->dwNumberOfPhys && i < WLAN_MAX_PHY_INDEX; i++)
+            {
+                if (state->PhyRadioState[i].dot11SoftwareRadioState == dot11_radio_state_on)
+                    softwareOn = true;
+                if (state->PhyRadioState[i].dot11HardwareRadioState == dot11_radio_state_on)
+                    hardwareOn = true;
+            }
+        }
+        WlanFreeMemory(state);
+    }
+
+    bool WifiConnector::IsWifiOn()
+    {
+        HANDLE client = nullptr;
+        DWORD version = 0;
+        if (WlanOpenHandle(2, nullptr, &version, &client) != ERROR_SUCCESS)
+            return true; // unknown: do not claim Wi-Fi is off
+
+        bool on = false;
+        PWLAN_INTERFACE_INFO_LIST interfaces = nullptr;
+        if (WlanEnumInterfaces(client, nullptr, &interfaces) == ERROR_SUCCESS && interfaces)
+        {
+            for (DWORD i = 0; i < interfaces->dwNumberOfItems && !on; i++)
+            {
+                bool softwareOn = true, hardwareOn = true;
+                GetRadioState(client, interfaces->InterfaceInfo[i].InterfaceGuid, softwareOn, hardwareOn);
+                on = softwareOn && hardwareOn;
+            }
+            WlanFreeMemory(interfaces);
+        }
+        WlanCloseHandle(client, nullptr);
+        return on;
+    }
+
     bool WifiConnector::Open()
     {
         if (_client)

@@ -17,6 +17,7 @@ namespace hndcam
         Connecting,   // camera found, waiting for the first video frame
         Streaming,    // frames are flowing
         JoiningWifi,  // connecting the PC Wi-Fi to a camera network (HNDEC_...)
+        WifiOff,      // no Wi-Fi adapter enabled, or Wi-Fi turned off on this PC
     };
     const wchar_t* StateName(CameraState state);
 
